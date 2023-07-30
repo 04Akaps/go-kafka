@@ -58,27 +58,12 @@ func (k *Kafka) ConsumeEvent(topic string) error {
 				panic(msg)
 			}
 
-			fmt.Println(consumeValue.Age)
-			fmt.Println(consumeValue.Name)
-
-			// fmt.Printf("New Event From Kafka Queue : %s , partition : %s  offset : %s\n", string(event.Value), event.TopicPartition, event.TopicPartition.Offset)
-			// fmt.Println("")
-			// fmt.Printf("Partition Meta : %d", event.TopicPartition.Partition)
-			// fmt.Println("")
-			// _, err = k.consumerMap.CommitMessage(event)
-			// if err != nil {
-			// 	fmt.Printf("Error committing offset: %s\n", err)
-			// }
-
-			// k.consumerMap.StoreMessage(event)
-
-			// CommitMessage -> Offset을 저장한다.
-			// 그러기 떄문에 특정 로직을 수행하고, 해당 로직이 정상적으로 완료가 되었을 떄만 실행이 되어야 한다.
-
-			// StoreMessage -> Offset을 저장하지 않는다.
-			// 보통 로직을 실행하다가 에러가 발생 했을 경우, 해당 함수를 실행하고,
-			// 따로 에러를 처리한다.
-
+			if partion, err := k.consumerMap.CommitMessage(event); err != nil {
+				// 워하는 에러 처리를 적합하게 하세요.
+				// 에러 처리 같은 경우에는 처리 후 커밋을 하면 파티션에 대한 Offset이 꼬이게 되니
+				// 커밋은 하지 않는것을 주의!!
+				fmt.Println(partion)
+			}
 		case *kafka.Error:
 			fmt.Printf("%s\n", event.Error())
 		}
@@ -191,6 +176,8 @@ func rebalanceCallback(c *kafka.Consumer, event kafka.Event) error {
 	case kafka.AssignedPartitions:
 		fmt.Printf("%% %s rebalance: %d new partition(s) assigned: %v\n",
 			c.GetRebalanceProtocol(), len(ev.Partitions), ev.Partitions)
+		// 컨슈머가 추가 될 떄 선행되어서 동작합니다.
+		// 원하는 처리를 추가 하도록 하세요!
 
 		err := c.Assign(ev.Partitions)
 		// IncrementalAssign -> 새롭게 추가되는 파티션만 할당
@@ -202,6 +189,9 @@ func rebalanceCallback(c *kafka.Consumer, event kafka.Event) error {
 		}
 
 	case kafka.RevokedPartitions:
+		// 컨슈머가 퇴장할 떄 동작을 합니다.
+		// 원하는 로직을 실행시키세요!
+
 		fmt.Printf("%% %s rebalance: %d partition(s) revoked: %v\n",
 			c.GetRebalanceProtocol(), len(ev.Partitions), ev.Partitions)
 
